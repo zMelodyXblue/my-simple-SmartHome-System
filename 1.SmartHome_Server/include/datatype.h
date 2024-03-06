@@ -12,6 +12,8 @@ enum device_type {
     DEVICE_SWITCH,
     DEVICE_THERMOSTAT,
     // 其他设备类型
+    //
+    _DEVICE_TYPE_SUM //设备类型总数
 };
 
 // 设备状态枚举
@@ -20,6 +22,8 @@ enum device_state {
     DEVICE_STATE_ON,
     DEVICE_STATE_STANDBY,
     // 其他设备状态
+
+    _DEVICE_STATE_SUM //设备状态总数
 };
 
 // 设备结构体

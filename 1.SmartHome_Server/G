@@ -1,1 +1,1 @@
-gcc -o ./bin/server server.c ./include/common.c -I./include -lpthread -D_D
+gcc -o ./bin/server server.c ./include/common.c ./include/server_recv.c ./include/device_ctl.c  -I./include -lpthread -D_D

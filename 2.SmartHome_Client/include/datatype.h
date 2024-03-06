@@ -7,11 +7,14 @@
 
 #ifndef _DATATYPE_H
 #define _DATATYPE_H
+
 enum device_type {
     DEVICE_LIGHT,
     DEVICE_SWITCH,
     DEVICE_THERMOSTAT,
     // 其他设备类型
+    //
+    _DEVICE_TYPE_SUM //设备类型总数
 };
 
 // 设备状态枚举
@@ -20,6 +23,8 @@ enum device_state {
     DEVICE_STATE_ON,
     DEVICE_STATE_STANDBY,
     // 其他设备状态
+
+    _DEVICE_STATE_SUM //设备状态总数
 };
 
 // 设备结构体
@@ -67,8 +72,11 @@ struct Ctl {
 #define SMH_WALL 0x02 //公告
 #define SMH_CTL 0x10 //控制信息
 #define SMH_FIN 0x100 //离场
-
-
+/*
+struct User0{
+    char name[20];
+};
+*/
 enum User_type {
     USER_COMMON,  //普通用户
     USER_SENIOR,  //高级用户

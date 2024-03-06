@@ -35,26 +35,30 @@ void *client_recv(void *arg) {
 
         //粘包、拆包 
         
+        //struct User0 user0 = {0};
+        //strncpy(user0.name, msg.user.name, 19);
+        
 	    if (msg.type & SMH_HEART) {
             char *temp_msg = "来自服务器的心跳 ������";
-	        Show_Message( , &msg.user, temp_msg, 0);
+            strncpy(recv_buff, temp_msg, MAX_MSG);
+	        Show_Message( , &msg.user, recv_buff, 0);
             struct SmhMsg ack_msg;
             ack_msg.type = SMH_ACK;
             if (send(global_sockfd, (char *)&ack_msg, sizeof(ack_msg), 0) < 0) {
                 perror("client_recv: send_ack");
             }
 	    } else if (msg.type & SMH_MSG) {
-            sprintf(recv_buff, "Server Msg: %s", msg.msg);
-            Show_Message( , &msg.user, recv_buff, 0);
+            sprintf(recv_buff, "rsize=%d Server Msg: %s\n", rsize, msg.msg);
+            //Show_Message( , &msg.user, recv_buff, 0);
 	    } else if (msg.type & SMH_WALL) {
-            sprintf(recv_buff, "Server Msg To All: %s", msg.msg);
-            Show_Message( , &msg.user, recv_buff, 0);
+            sprintf(recv_buff, "rsize=%d Server Msg To All: %s\n", rsize, msg.msg);
+            //Show_Message( , &msg.user, recv_buff, 0);
         } else if (msg.type & SMH_CTL) {
             sprintf(recv_buff, "CTL: %s", msg.msg);
-            Show_Message( , &msg.user, recv_buff, 0);
+            //Show_Message( , &msg.user, recv_buff, 0);
         } else if (msg.type & SMH_ACK) {
             sprintf(recv_buff, "ACK: %s", msg.msg);
-            Show_Message( , &msg.user, recv_buff, 0);
+            //Show_Message( , &msg.user, recv_buff, 0);
         } else if (msg.type & SMH_FIN) {
             sprintf(recv_buff, "服务器正要停止\n");
             Show_Message( , &msg.user, recv_buff, 0);
@@ -63,8 +67,13 @@ void *client_recv(void *arg) {
 	        exit(0);
 	    } else {
             Show_Message( , &msg.user, "Msg Unsupport\n", 0);
+            continue;
 	    }
-        DBG(L_GREEN"recv_SmhMsg: type = %d\n  msg: %s" NONE"\n", msg.type, msg.msg);
+        /*sprintf(recv_buff, " %d :msg.type=%d, msg.size=%d\n user: name: %s, type=%d\n  msg: %s\n",
+            global_sockfd, msg.type, msg.size, msg.user.name, msg.user.type, msg.msg
+        );*/
+        Show_Message( , &msg.user, recv_buff, 0);
+
 	}
     return NULL;
 }

@@ -48,18 +48,18 @@ void logout(int signum) {
     sleep(2);
     make_nonblock(global_sockfd);
     if (recv(global_sockfd, (char *)&msg, sizeof(msg), 0) <= 0) {
-        perror("logout:recv");
         close(global_sockfd);
         #ifndef _D
         endwin();
         #endif
+        perror("logout:recv");
         exit(1);
     }
-    printf("final msg: %s\n", msg.msg);
     close(global_sockfd);
     #ifndef _D
     endwin();
     #endif
+    printf("final msg: %s\n", msg.msg);
     DBG(RED"Bye!\n"NONE);
     exit(0);
 }
@@ -67,8 +67,8 @@ void logout(int signum) {
 void mainLogin();
 
 int main() {
-    signal(SIGINT, logout);
     mainLogin();
+    signal(SIGINT, logout);  //ctrl C
 
     setlocale(LC_ALL,"");
     #ifndef _D
@@ -133,8 +133,8 @@ void mainLogin() {
 
     struct LogRequest logReq;
     memset(&logReq, 0, sizeof(logReq));
-    strncpy(logReq.name, user_name, 19);
-    strncpy(logReq.passwd, user_passwd, 19);
+    strncpy(logReq.name, user_name, sizeof(logReq.name) - 1);
+    strncpy(logReq.passwd, user_passwd, sizeof(logReq.passwd) - 1);
     Login(global_sockfd, &logReq);
 
     return ;

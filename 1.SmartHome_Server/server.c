@@ -15,37 +15,17 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <arpa/inet.h>
+#include <server_recv.h>
+#include <device_ctl.h>
 
-char *global_server_name = "测试中心";
+const char *global_server_name = "System";
 
-void getLogin(int sockfd, struct User *user);
-void send_test_SmhMsg(int new_fd);
+const size_t SmhMsg_size = sizeof(struct SmhMsg);
 
-struct Recv_Args {
-    int sockfd;
-    pthread_t thread;
-    struct User user;
-    struct sockaddr_in client;
-};
-struct Recv_Args ClientLinks[1024] = {0};
+struct Link_Args ClientLinks[MAX_CLIENT_SUM];
 
-void *server_recv(void *arg) {
-    struct Recv_Args *client = (struct Recv_Args *)arg;
-    pthread_detach(client->thread);
-    getLogin(client->sockfd, &client->user);
-    send_test_SmhMsg(client->sockfd);
+struct device *device_list[MAX_DEVICE_SUM];
 
-    for (int i = 0; i < 1024; ++i) {
-        if (ClientLinks[i].sockfd == -1) continue;
-        
-    }
-
-    int sockfd_temp = client->sockfd;
-    client->sockfd = -1;
-    close(sockfd_temp);
-    return NULL;
-}
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -60,6 +40,9 @@ int main(int argc, char **argv) {
         perror("socket_create");
         exit(1);
     }
+
+    memset(device_list, 0, sizeof(device_list));
+
     struct sockaddr_in temp_client;
     socklen_t temp_len = sizeof(temp_client);
     while (1) {
@@ -132,7 +115,8 @@ void send_test_SmhMsg(int new_fd) {
         sleep(1);
     }
     memset(&msg, 0, sizeof(msg));
-    msg.type = SMH_FIN;
+    msg.type = SMH_MSG;
+    strncpy(msg.msg, "Test finish!\n", MAX_MSG);
     if (send(new_fd, (char *)&msg, sizeof(msg), 0) < 0) {
         perror("send_SmhMsg:send");
     }

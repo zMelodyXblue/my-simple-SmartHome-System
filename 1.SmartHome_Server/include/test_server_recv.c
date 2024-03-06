@@ -24,8 +24,8 @@ extern const size_t SmhMsg_size;
 extern struct Link_Args ClientLinks[MAX_CLIENT_SUM];
 
 extern struct device *device_list[MAX_DEVICE_SUM];
-const char _dev_type_icons[8][16] = {"������", "������", "������"};
-const char _dev_state_icons[8][16] = {"❌->OFF", "✅->ON", "������->Standby"};
+const char _dev_type_icons[8][8] = {"������", "������", "������"};
+const char _dev_state_icons[8][8] = {"✅", "❌", "������"};
 
 void *server_recv(void *arg) {
     struct Link_Args *client = (struct Link_Args *)arg;
@@ -90,9 +90,8 @@ void *server_recv(void *arg) {
             }
         } else if (com_msg.type & SMH_CTL){
             //控制信息
-            sys_msg.type= SMH_CTL; 
-            DBG(L_GREEN"recv_ctl: action = %d, device_id = %d" NONE"\n", com_msg.ctl.action, com_msg.ctl.dev.device_id);
-            if (com_msg.ctl.action < 0 || HouseCtl(&com_msg, &sys_msg) < 0) {
+            sys_msg.type = SMH_CTL; 
+            if (HouseCtl(&com_msg, &sys_msg) < 0) {
                 fprintf(stderr, L_RED"HouseCtl: illegal operation" NONE"\n");
                 strncpy(sys_msg.msg, "illegal operation or target not existing", MAX_MSG);
             }
@@ -116,25 +115,14 @@ void *server_recv(void *arg) {
     return NULL;
 }
 
-/*
-#define ACTION_GET_DEVICES 0x01
-#define ACTION_UPDATE_DEVICE 0x02
-#define ACTION_ADD_DEVICE 0x04
-#define ACTION_DEL_DEVICE 0x08
 
-//使用CTL报文对设备进行控制
-struct Ctl {
-    int action;
-    struct device dev;
-};
-*/
+
 //解析控制命令，调用操作函数，打印合法返回信息
 int HouseCtl(const struct SmhMsg *msg, struct SmhMsg *sys_msg) {
-    //const char *dev_type;
-    //const char *dev_state;
-    int target_dev_id = msg->ctl.dev.device_id;  //所要操纵的设备的id
-    int action = msg->ctl.action;
-    if (action & ACTION_GET_DEVICES) {
+    const char *dev_type;
+    const char *dev_state;
+    int target_id = 0;  //所要操纵的设备的id
+    if (msg->msg[1] == '1') {
         //查看已有设备列表
         DBG("查看已有设备列表:\n");
         strncpy(sys_msg->msg, "当前设备有: ", MAX_MSG); 
@@ -147,38 +135,57 @@ int HouseCtl(const struct SmhMsg *msg, struct SmhMsg *sys_msg) {
             );
         }
         DBG("%s\n", sys_msg->msg);
-    } else if (action & ACTION_UPDATE_DEVICE) {
+    } else if (msg->msg[1] == '2') {
         //改变设备状态
         DBG("改变设备状态:\n");
-        if (target_dev_id <= 0 || target_dev_id >= MAX_DEVICE_SUM) return -1;  //非法操作
-        if (device_list[target_dev_id] == NULL) return -1;
-        if (change_device_states[msg->ctl.dev.state](device_list[target_dev_id]) < 0) {
+        int act_to_state = msg->msg[2] - '0';
+        if (act_to_state < 0 || act_to_state >= _DEVICE_STATE_SUM) {
+            return -1;  //非法操作
+        }
+        int j = 3;
+        while (msg->msg[j] == ' ') ++j;
+        while (msg->msg[j] <= '9' && msg->msg[j] > '0') {
+            target_id *= 10;
+            target_id += (msg->msg[j] - '0');
+            ++j;
+        }
+        if (target_id <= 0 || target_id >= MAX_DEVICE_SUM) return -1;  //非法操作
+        if (change_device_states[act_to_state](device_list[target_id]) < 0) {
             fprintf(stderr, YELLOW"change_device_state failed!" NONE"\n");
             strncpy(sys_msg->msg, "change device state failed!", MAX_MSG);
-        } else {
-            strncpy(sys_msg->msg, "change device state succeed!", MAX_MSG);
         }
-    } else if (action & ACTION_ADD_DEVICE) {
+    } else if (msg->msg[1] == '3') {
         //添加设备
         DBG("添加设备:\n");
-        if (msg->ctl.dev.type < 0 || msg->ctl.dev.type >= _DEVICE_TYPE_SUM) return -1;  //非法操作
-        DBG(YELLOW"add: type = %d, name = %s" NONE"\n", msg->ctl.dev.type, msg->ctl.dev.device_name);
-        if (add_devices[msg->ctl.dev.type](device_list, msg->ctl.dev.device_name) < 0) {
+        int dev_type = msg->msg[2] - '0';
+        if (dev_type < 0 || dev_type > 9) return -1;
+        if (dev_type < 0 || dev_type >= _DEVICE_TYPE_SUM) return -1;  //非法操作
+        char dev_name[30] = {0};
+        int j = 3;
+        while (msg->msg[j] == ' ') ++j;
+        DBG(BLUE"j = %d, msg: %s" NONE"\n", j, msg->msg);
+        int i;
+        for (i = 0; msg->msg[j]; ++j, ++i) dev_name[i] = msg->msg[j];
+        DBG(BLUE"j = %d, i = %d\n", j ,i);
+        DBG(YELLOW"add: type = %d, name = %s" NONE"\n", dev_type, dev_name);
+        if (add_devices[dev_type](device_list, dev_name) < 0) {
             fprintf(stderr, YELLOW"add_device failed!\n" NONE"\n");
             strncpy(sys_msg->msg, "add device failed!\n", MAX_MSG);
-        } else {
-            strncpy(sys_msg->msg, "add device succeed!\n", MAX_MSG);
         }
-    } else if (action & ACTION_DEL_DEVICE) {
+    } else if (msg->msg[1] == '4') {
         DBG("移除设备:\n");
-        if (target_dev_id <= 0 || target_dev_id >= MAX_DEVICE_SUM) return -1;
-        if (device_list[target_dev_id] == NULL) return -1;
-        free(device_list[target_dev_id]);
-        device_list[target_dev_id] = NULL;
+        int j = 2, target_id = 0;
+        while (msg->msg[j] == ' ') ++j;
+        while (msg->msg[j] <= '9' && msg->msg[j] > '0') {
+            target_id *= 10;
+            target_id += (msg->msg[j] - '0');
+            ++j;
+        }
+        if (target_id <= 0 || target_id >= MAX_DEVICE_SUM) return -1;
+        if (device_list[target_id] == NULL) return -1;
+        free(device_list[target_id]);
+        device_list[target_id] = NULL;
         strncpy(sys_msg->msg, "device has been removed!", MAX_MSG);
-    } else {
-        DBG(RED"非法动作" NONE"\n");
-        return -1;
     }
     return 0;
 }  

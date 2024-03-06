@@ -10,7 +10,8 @@
 
 #include "color.h"
 #include "datatype.h"
-#include "client_recv.h"
+#include "server_recv.h"
+#include "device_ctl.h"
 
 #ifdef _D
 #define DBG(fmt, args...) printf(fmt, ##args)
