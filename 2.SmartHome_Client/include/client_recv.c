@@ -33,7 +33,7 @@ void *client_recv(void *arg) {
             break;
         }
 
-        //粘包、拆包 
+        //待补充: 粘包、拆包 
         
         //struct User0 user0 = {0};
         //strncpy(user0.name, msg.user.name, 19);

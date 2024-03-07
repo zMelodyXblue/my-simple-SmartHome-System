@@ -21,10 +21,10 @@ extern char global_server_port[32] = {0};
 extern char global_user_name[64] = {0};
 extern char global_user_passwd[64] = {0};
 */
-extern char global_server_ip[];
-extern char global_server_port[];
-extern char global_user_name[];
-extern char global_user_passwd[];
+extern char global_server_ip[20];
+extern char global_server_port[20];
+extern char global_user_name[20];
+extern char global_user_passwd[20];
 
 char *get_config_value(const char* config_file_path, const char * key) {
     FILE *fp = fopen(config_file_path, "r");
@@ -38,24 +38,27 @@ char *get_config_value(const char* config_file_path, const char * key) {
         if (strstr(buff, key) == NULL) continue;
         break;
     } 
+    fclose(fp);
+
     int i = 0;
     while (buff[i] != '=') ++i;
     ++i;
     while (buff[i] == ' ') ++i;
 
-    char config_value[128] = {0};
+    char config_value[64] = {0};
     for (int j = 0, I = strlen(buff); buff[i] != '\0' && buff[i] != '\n'; ++i, ++j) {
         config_value[j] = buff[i];
     }
+
     char *r = NULL;
     if (strcmp(key, "SERVER_IP") == 0) 
-        strcpy(global_server_ip, config_value), r = global_server_ip;
+        strncpy(global_server_ip, config_value, sizeof(global_server_ip) - 1), r = global_server_ip;
     else if (strcmp(key, "SERVER_PORT") == 0) 
-        strcpy(global_server_port, config_value), r = global_server_port;
+        strncpy(global_server_port, config_value, sizeof(global_server_port) - 1), r = global_server_port;
     else if (strcmp(key, "USER_NAME") == 0)
-        strcpy(global_user_name, config_value), r = global_user_name;
+        strncpy(global_user_name, config_value, sizeof(global_user_name) - 1), r = global_user_name;
     else if (strcmp(key, "USER_PASSWD") == 0)
-        strcpy(global_user_passwd, config_value), r = global_user_passwd;
+        strncpy(global_user_passwd, config_value, sizeof(global_user_passwd) - 1), r = global_user_passwd;
     return r;
 }
 

@@ -26,7 +26,7 @@ char global_user_name[20] = {0};
 char global_user_passwd[20] = {0};
 
 int global_sockfd = -1;
-const char *global_conf = "./config";
+const char *global_conf_file = "./config";
 struct SmhMsg chat_msg;
 //struct SmhMsg ctl_msg;
 struct Ctl ctl; //在 send_chat.c 中
@@ -102,22 +102,22 @@ void Login(int sockfd, struct LogRequest *logReq);
 
 void mainLogin() {
     int log_msg_error_flag = 0;
-    char *server_ip = get_config_value(global_conf, "SERVER_IP");
+    char *server_ip = get_config_value(global_conf_file, "SERVER_IP");
     if (server_ip == NULL) {
         fprintf(stderr, RED"SERVER_IP not found!"NONE"\n");
         log_msg_error_flag = 1;
     }
-    char *server_port = get_config_value(global_conf, "SERVER_PORT");
+    char *server_port = get_config_value(global_conf_file, "SERVER_PORT");
     if (server_port == NULL) {
         fprintf(stderr, RED"SERVER_PORT not found!"NONE"\n");
         log_msg_error_flag = 1;
     }
-    char *user_name = get_config_value(global_conf, "USER_NAME");
+    char *user_name = get_config_value(global_conf_file, "USER_NAME");
     if (user_name == NULL) {
         fprintf(stderr, RED"USER_NAME not found!"NONE"\n");
         log_msg_error_flag = 1;
     }
-    char *user_passwd = get_config_value(global_conf, "USER_PASSWD");
+    char *user_passwd = get_config_value(global_conf_file, "USER_PASSWD");
     if (user_passwd == NULL) {
         fprintf(stderr, RED"USER_PASSWD not found!"NONE"\n");
         log_msg_error_flag = 1;

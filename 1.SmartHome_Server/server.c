@@ -18,23 +18,31 @@
 #include <server_recv.h>
 #include <device_ctl.h>
 
-const char *global_server_name = "System";
+const char *global_conf_file = "./config_server";
 
-const size_t SmhMsg_size = sizeof(struct SmhMsg);
+char global_server_name[20] = {0};
+
+char global_server_port[20] = {0};
 
 struct Link_Args ClientLinks[MAX_CLIENT_SUM];
 
 struct device *device_list[MAX_DEVICE_SUM];
 
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s port\n", argv[0]);
+int main() {
+    if (get_config_value(global_conf_file, "SERVER_PORT") == NULL) {
+        fprintf(stderr, RED"SERVER_IP not found!" NONE"\n");
         exit(1);
     }
+    if (get_config_value(global_conf_file, "SERVER_NAME") == NULL) {
+        fprintf(stderr, RED"SERVER_NAME not found!" NONE"\n");
+        exit(1);
+    }
+    DBG(L_BLUE"SERVER_IP = %s" NONE"\n", global_server_port);
+    DBG(L_BLUE"SERVER_NAME = %s" NONE"\n", global_server_name);
     for (int i = 0; i < 1024; ++i) ClientLinks[i].sockfd = -1;
 
-    int port = atoi(argv[1]);
+    int port = atoi(global_server_port);
     int server_listen = socket_create(port);
     if (server_listen < 0) {
         perror("socket_create");
@@ -99,12 +107,12 @@ void send_test_SmhMsg(int new_fd) {
                 break;
             case 1:
                 msg.type = SMH_MSG;
-                strncpy(msg.user.name, global_server_name, 19);
+                strncpy(msg.user.name, global_server_name, sizeof(msg.user.name) - 1);
                 strncpy(msg.msg, "Hello", MAX_MSG - 1);
                 break;
             case 2:
                 msg.type = SMH_WALL;
-                strncpy(msg.user.name, global_server_name, 19);
+                strncpy(msg.user.name, global_server_name, sizeof(msg.user.name) - 1);
                 strncpy(msg.msg, "Hello, everyone!", MAX_MSG - 1);
                 break;
         }

@@ -17,9 +17,8 @@
 #include <common.h>
 #include <server_recv.h>
 
-extern const char *global_server_name;
+extern char global_server_name[20];
 
-extern const size_t SmhMsg_size;
 
 extern struct Link_Args ClientLinks[MAX_CLIENT_SUM];
 
@@ -36,15 +35,15 @@ void *server_recv(void *arg) {
     //send_test_SmhMsg(fd);
 
     struct SmhMsg com_msg, sys_msg;
-    memset(&com_msg, 0, SmhMsg_size);
-    memset(&sys_msg, 0, SmhMsg_size);
+    memset(&com_msg, 0, sizeof(com_msg));
+    memset(&sys_msg, 0, sizeof(sys_msg));
     sys_msg.user.type = USER_ADMINISTRATOR;
     strncpy(sys_msg.user.name, global_server_name, sizeof(sys_msg.user.name) - 1);
 
     char msg_at_name[32] = {0};
     int recv_size;
     while (1) {
-        if ((recv_size = recv(fd, (char *)&com_msg, SmhMsg_size, 0)) <= 0) {
+        if ((recv_size = recv(fd, (char *)&com_msg, sizeof(com_msg), 0)) <= 0) {
             perror("server_recv: recv");
             /*sys_msg.type = SMH_MSG;
             strncpy(sys_msg.msg, "recv failed!", MAX_MSG);
@@ -56,7 +55,7 @@ void *server_recv(void *arg) {
             strncpy(com_msg.user.name, client->user.name, sizeof(com_msg.user.name) - 1);
             for (int i = 0; i < MAX_CLIENT_SUM; ++i) {
                 if (ClientLinks[i].sockfd != i) continue;
-                if (send(ClientLinks[i].sockfd, (char *)&com_msg, SmhMsg_size, 0) < 0) {
+                if (send(ClientLinks[i].sockfd, (char *)&com_msg, sizeof(com_msg), 0) < 0) {
                     perror("send_to_all");
                 }
                 DBG(L_BLUE"send to %d: %s" NONE"\n", i, com_msg.msg);
@@ -76,7 +75,7 @@ void *server_recv(void *arg) {
             for (int i = 0; i < MAX_CLIENT_SUM; ++i) {
                 if (ClientLinks[i].sockfd != i) continue;
                 if (strcmp(ClientLinks[i].user.name, msg_at_name) != 0) continue;
-                if (send(i, (char *)&com_msg, SmhMsg_size, 0) < 0) {
+                if (send(i, (char *)&com_msg, sizeof(com_msg), 0) < 0) {
                     perror("send_msg");
                 }
                 DBG(L_GREEN"send to %d: %s" NONE"\n", i, com_msg.msg);
@@ -84,7 +83,7 @@ void *server_recv(void *arg) {
             if (flag) {
                 sprintf(sys_msg.msg, "client <%s> is not online\n", msg_at_name);
                 sys_msg.type = SMH_MSG;
-                if (send(fd, (char *)&sys_msg, SmhMsg_size, 0) < 0) {
+                if (send(fd, (char *)&sys_msg, sizeof(sys_msg), 0) < 0) {
                     perror("send_sys_msg");
                 }
             }
@@ -96,14 +95,14 @@ void *server_recv(void *arg) {
                 fprintf(stderr, L_RED"HouseCtl: illegal operation" NONE"\n");
                 strncpy(sys_msg.msg, "illegal operation or target not existing", MAX_MSG);
             }
-            if (send(fd, (char *)&sys_msg, SmhMsg_size, 0) < 0) {
+            if (send(fd, (char *)&sys_msg, sizeof(sys_msg), 0) < 0) {
                 perror("send_ctl_msg");
             }
             DBG(YELLOW"send to %d:(sys) %s" NONE"\n", fd, sys_msg.msg);
         } else if (com_msg.type & SMH_FIN) {
             sys_msg.type = SMH_ACK;
             strcpy(sys_msg.msg, "FIN_ACK");
-            if (send(fd, (char *)&sys_msg, SmhMsg_size, 0) < 0) {
+            if (send(fd, (char *)&sys_msg, sizeof(sys_msg), 0) < 0) {
                 perror("send_FIN_msg");
             }
             DBG(YELLOW"send to %d:(sys) %s" NONE"\n", fd, sys_msg.msg);
