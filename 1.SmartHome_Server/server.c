@@ -13,18 +13,24 @@
 #include <common.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <server_recv.h>
 #include <device_ctl.h>
+#include <thread_pool.h>
+
+#define INS 3
 
 const char *global_conf_file = "./config_server";
-
 char global_server_name[20] = {0};
-
 char global_server_port[20] = {0};
 
 struct Link_Args ClientLinks[MAX_CLIENT_SUM];
+struct SmhMsg msgBuff[MAX_CLIENT_SUM] = {0};
+
+pthread_t threads[INS] = {0};
 
 struct device *device_list[MAX_DEVICE_SUM];
 
@@ -53,19 +59,81 @@ int main() {
 
     struct sockaddr_in temp_client;
     socklen_t temp_len = sizeof(temp_client);
+
+    //创建线程池和线程
+    struct task_queue *taskQueue = (struct task_queue *)malloc(sizeof(struct task_queue));
+    task_queue_init(taskQueue, MAX_CLIENT_SUM);
+    for (int i = 0; i < INS; ++i) {
+        pthread_create(&threads[i], NULL, server_recv, (void *)taskQueue);
+    }
+
+    fd_set readfds;
+    int maxfd = server_listen;
+    ClientLinks[server_listen].sockfd = 0; //为了“server_recv.c”中区分
+    DBG("server_listen = %d\n", server_listen);
+    int sockfd = 0;
     while (1) {
-        bzero(&temp_client, temp_len);
-        int new_fd = accept(server_listen, (struct sockaddr *)&temp_client, &temp_len);
-        DBG(L_BLUE"accept {%d}" NONE"\n", new_fd);
-        if (new_fd < 0) {
-            perror("accept");
-            continue;
+        //reinit
+        FD_ZERO(&readfds);
+        for (int i = 3, n = maxfd + 2; i < n; ++i) {
+            if (ClientLinks[i].sockfd == -1) continue;
+            FD_SET(i, &readfds);
         }
-
-        ClientLinks[new_fd].sockfd = new_fd;
-        ClientLinks[new_fd].client = temp_client;
-        pthread_create(&ClientLinks[new_fd].thread, NULL, server_recv, (void *)&ClientLinks[new_fd]);
-
+        DBG(BLUE"select start"NONE"\n");
+        if (select(maxfd + 1, &readfds, NULL, NULL, NULL) < 0) {
+            perror("select");
+            exit(1);
+        }
+        DBG(YELLOW"select finish"NONE"\n");
+        if (FD_ISSET(server_listen, &readfds)) {
+            //struct sockaddr_in client;
+            socklen_t len = sizeof(ClientLinks[server_listen].client);
+            bzero(&ClientLinks[server_listen].client, len);
+            DBG(GREEN"accept start"NONE"\n");
+            if ((sockfd = accept(server_listen, (struct sockaddr *)&ClientLinks[server_listen].client, &len)) < 0) {
+                perror("accept");
+                exit(1);
+            }
+            DBG(GREEN"accept finish"NONE"\n");
+            memcpy(&ClientLinks[sockfd].client, &ClientLinks[server_listen].client, len);
+            printf(L_BLUE"%s:<%d> login!" NONE"\n", inet_ntoa(ClientLinks[sockfd].client.sin_addr), ntohs(ClientLinks[sockfd].client.sin_port));
+            if (sockfd > MAX_CLIENT_SUM - 5) {
+                fprintf(stderr, "Too Many users!\n");
+                close(sockfd);
+                printf(YELLOW"client-%d has to leave temporarily!" NONE"\n", sockfd);
+            } else {
+                ClientLinks[sockfd].sockfd = sockfd;
+                if (sockfd > maxfd) maxfd = sockfd;
+                ClientLinks[sockfd].tasktype = 1;
+                //task_queue_push(taskQueue, &ClientLinks[sockfd]);
+            }
+        }
+        for (int i = 3, n = maxfd + 2; i < n; ++i) {
+            if (ClientLinks[i].sockfd != i) continue;
+            //if (ClientLinks[i].sockfd == server_listen) continue;
+            DBG(L_BLUE"FD_ISSET?"NONE"\n");
+            if (FD_ISSET(ClientLinks[i].sockfd, &readfds)) {
+                DBG("%d is ready!\n", ClientLinks[i].sockfd);
+                DBG(GREEN"recv start"NONE"\n");
+                if (ClientLinks[i].tasktype > 0) {
+                    getLogin(i, &ClientLinks[i].user);
+                    ClientLinks[i].tasktype = 0;
+                    DBG(YELLOW"client-%d getLogin finished!" NONE"\n", ClientLinks[i].sockfd);
+                    continue;
+                }
+                int rsize = recv(ClientLinks[i].sockfd, (char *)&msgBuff[i], sizeof(msgBuff[i]), 0);
+                DBG(L_GREEN"recv finish"NONE"\n");
+                if (rsize <= 0) {
+                    perror("recv");
+                    //int temp_fd = ClientLinks[i].sockfd;
+                    ClientLinks[i].sockfd = -1;
+                    close(i);
+                    printf(YELLOW"client-%d leave!" NONE"\n", i);
+                    continue;
+                }
+                task_queue_push(taskQueue, &ClientLinks[i]);
+            }
+        }
     }
 
     close(server_listen);

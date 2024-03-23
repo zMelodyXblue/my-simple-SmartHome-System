@@ -48,10 +48,12 @@ void *client_recv(void *arg) {
                 perror("client_recv: send_ack");
             }
 	    } else if (msg.type & SMH_MSG) {
-            sprintf(recv_buff, "rsize=%d Server Msg: %s\n", rsize, msg.msg);
+            //sprintf(recv_buff, "rsize=%d Server Msg: %s\n", rsize, msg.msg);
+            sprintf(recv_buff, "%s", msg.msg);
             //Show_Message( , &msg.user, recv_buff, 0);
 	    } else if (msg.type & SMH_WALL) {
-            sprintf(recv_buff, "rsize=%d Server Msg To All: %s\n", rsize, msg.msg);
+            //sprintf(recv_buff, "rsize=%d Server Msg To All: %s\n", rsize, msg.msg);
+            sprintf(recv_buff, "%s", msg.msg);
             //Show_Message( , &msg.user, recv_buff, 0);
         } else if (msg.type & SMH_CTL) {
             sprintf(recv_buff, "CTL: %s", msg.msg);

@@ -19,10 +19,12 @@ void send_test_SmhMsg(int new_fd);
 
 struct Link_Args {
     int sockfd;
-    pthread_t thread;
+    int tasktype;  //非零:getLogin ; 
+    //pthread_t thread;
     struct User user;
     struct sockaddr_in client;
 };
+//struct SmhMsg msgBuff[MAX_CLIENT_SUM];
 
 
 void *server_recv(void *arg);

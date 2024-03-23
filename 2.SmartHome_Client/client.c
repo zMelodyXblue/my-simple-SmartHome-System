@@ -36,10 +36,18 @@ WINDOW *message_win, *message_sub,  *info_win, *input_win, *info_sub;
 int message_num = 0;
 
 
+pthread_t recv_tid;
+
 void logout(int signum) {
     struct SmhMsg msg;
     //发送type为SMH_FIN的数据包
     //关闭连接
+    #ifndef _D
+    endwin();
+    #endif
+    if (pthread_cancel(recv_tid) != 0) {
+        perror("pthread_cancel");
+    }
     msg.type = SMH_FIN;
     if (send(global_sockfd, (char *)&msg, sizeof(msg), 0) < 0) {
         perror("logout:send");
@@ -49,9 +57,6 @@ void logout(int signum) {
     make_nonblock(global_sockfd);
     if (recv(global_sockfd, (char *)&msg, sizeof(msg), 0) <= 0) {
         close(global_sockfd);
-        #ifndef _D
-        endwin();
-        #endif
         perror("logout:recv");
         exit(1);
     }
@@ -68,14 +73,14 @@ void mainLogin();
 
 int main() {
     mainLogin();
-    signal(SIGINT, logout);  //ctrl C
 
     setlocale(LC_ALL,"");
     #ifndef _D
     init_ui();
     #endif
-    pthread_t recv_tid;
     pthread_create(&recv_tid, NULL, client_recv, NULL);
+    signal(SIGINT, logout);  //ctrl C
+
     while (1) {
 	    int c = getchar();
         if (c == EOF) break;
