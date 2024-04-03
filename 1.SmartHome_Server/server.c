@@ -85,8 +85,9 @@ int main() {
             exit(1);
         }
         DBG(YELLOW"select finish"NONE"\n");
+        
+        //有新连接
         if (FD_ISSET(server_listen, &readfds)) {
-            //struct sockaddr_in client;
             socklen_t len = sizeof(ClientLinks[server_listen].client);
             bzero(&ClientLinks[server_listen].client, len);
             DBG(GREEN"accept start"NONE"\n");
@@ -105,7 +106,6 @@ int main() {
                 ClientLinks[sockfd].sockfd = sockfd;
                 if (sockfd > maxfd) maxfd = sockfd;
                 ClientLinks[sockfd].tasktype = 1;
-                //task_queue_push(taskQueue, &ClientLinks[sockfd]);
             }
         }
         for (int i = 3, n = maxfd + 2; i < n; ++i) {
@@ -200,18 +200,3 @@ void send_test_SmhMsg(int new_fd) {
     return ;
 }
 
-/*
-#define SMH_HEART 0x01 //心跳
-#define SMH_ACK 0x08 //ack
-#define SMH_MSG 0x04 //聊天
-#define SMH_WALL 0x02 //公告
-#define SMH_CTL 0x10 //控制信息
-#define SMH_FIN 0x100 //离场
-
-struct SmhMsg{
-    int type;  // type & SMH_HEART 验证是否为SMH_HEART信息
-    int size;
-    struct User user;
-    char msg[MAX_MSG];
-    struct Ctl ctl;
-};*/

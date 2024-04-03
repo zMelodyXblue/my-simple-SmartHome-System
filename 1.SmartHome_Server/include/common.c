@@ -109,51 +109,6 @@ int socket_connect(const char *ip, const int port) {
     return sockfd;
 }
 
-int socket_connect_timeout(const char *ip, const int port, const long timeout) {
-    int sockfd;
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        return -1;
-    }
-    struct sockaddr_in server;
-    server.sin_family = AF_INET;
-    server.sin_port = htons(port); //记得htons ！！
-    server.sin_addr.s_addr = inet_addr(ip);
-
-    make_nonblock(sockfd);
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = timeout;
-
-    fd_set wfds;
-    FD_ZERO(&wfds);
-    FD_SET(sockfd, &wfds);
-    int ret;
-    //非阻塞的话connect一定返回-1 //先进行connect才可能可写
-    if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) { 
-        int err = -1;
-        int len = sizeof(int);
-        ret = select(sockfd + 1, NULL, &wfds, NULL, &tv);
-        DBG(RED"select finish!\n"NONE);
-        if (ret <= 0) {
-            close(sockfd); //记得close ！
-            DBG(RED"ret<=0!\n");
-            return -1;
-        } else {
-            if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &err, (socklen_t *)&len) < 0) {
-                close(sockfd);
-                DBG(NONE"getsockopt err!\n"NONE);
-                return -1;
-            }
-            if (err) {
-                close(sockfd);
-                DBG(RED"err\n"NONE);
-                return -1;
-            }
-        }
-    }
-    make_block(sockfd);//返回阻塞的sockfd
-    return sockfd;
-}
 
 
 void log_event(int level, const char* message, const char* filename) {

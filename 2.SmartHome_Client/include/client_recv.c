@@ -33,10 +33,7 @@ void *client_recv(void *arg) {
             break;
         }
 
-        //待补充: 粘包、拆包 
         
-        //struct User0 user0 = {0};
-        //strncpy(user0.name, msg.user.name, 19);
         
 	    if (msg.type & SMH_HEART) {
             char *temp_msg = "来自服务器的心跳 ������";
@@ -94,7 +91,6 @@ void *client_recv(void *arg) {
             break;
         }
 
-        //粘包、拆包
         
 	    if (msg.type & SMH_HEART) {
 	        DBG("来自服务器的心跳 ������\n");

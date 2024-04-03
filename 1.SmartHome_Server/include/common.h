@@ -13,13 +13,14 @@ extern char global_user_name[];
 extern char global_user_passwd[];
 char *get_config_value(const char* config_file_path, const char * key);
 
-int make_nonblock(int fd);
-int make_block(int fd);
+int make_nonblock(int fd); //使得fd非阻塞
+int make_block(int fd);  //使得fd阻塞
 
 int socket_create(int port);
 int socket_connect(const char *ip, int port);
-int socket_connect_timeout(const char *ip, const int port, const long timeout);
+//int socket_connect_timeout(const char *ip, const int port, const long timeout);
 
+//日志事件等级
 #define LOG_LEVEL_INFO 0
 #define LOG_LEVEL_WARNING 1
 #define LOG_LEVEL_ERROR 2
